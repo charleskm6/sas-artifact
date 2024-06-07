@@ -5,12 +5,59 @@ Artifact documentation for the paper "Trace Partitioning as an Optimization Prob
 The artifact is a docker image containing the evaluation scripts. The docker image is available on [https://zenodo.org/records/11506965].
 
 ## Artifact Organization
-The artifact is organized in 3 directories inside 'sas-exp' directory
-	1. 'benchmarks': All the SVComp C programs of 4 categories mentioned in the paper + instrumented KsHandlers category
-	2. 'gsr': Source files of the technique
-	3. 'exps': We have 7 experiments. Each experiment has multiple strategies, and each strategy has a clone of gsr/ directory. This allows to run all strategies of the experiment in parallel. 
+The artifact is organized in 3 directories inside the 'sas-exp' directory:
+
+1. **Benchmarks**: All the SVComp C programs of 4 categories mentioned in the paper + instrumented KsHandlers category.
+2. **GSR**: Source files of the technique.
+3. **Exps**: We have 7 experiments. Each experiment has multiple strategies, and each strategy has a clone of the gsr/ directory. This allows running all strategies of the experiment in parallel.
 
 We also provide 'Dockerfile' used to generate the docker. 
+
+### Running an experiment
+
+Each experiment has three scripts:
+1. **run.sh**: 1 hour (3600 seconds) timeout for all programs. This, however, can extend up to 40 days.
+2. **run_10s.sh**: 10-second timeout for all programs to verify a part of the cactus under the timelimit.
+3. **run_60s.sh**: 60-second timeout for all programs to verify a part of the cactus under the timelimit.
+
+
+### Config file
+Each strategy of every experiment needs a config.json to set the parameters for the GSR search algorithm, and we need the following parameters. 
+
+```
+{
+  "algo": "Iddfs",
+  "k": 1000,
+  "domain": "Itv",
+  "knobs": {
+    "split_k": 1000,
+    "unroll_k": 1000,
+    "calls_k": 1000,
+    "timeout": 3600.0
+  },
+  "config": {
+    "is_incremental": true,
+    "is_sequential": true
+  }
+}
+```
+
+1. ***algo***: Here we have three 3 algorithms: IDDDS ("Idddfs"), SDS ("Sds"), Full-Split ("Fs"). 
+2. ***k***: The maximum bound used for all three repairs: splitting, unrolling, context-sensitivity
+3. ***domain***: Here we have 4 abstract domains: Intervals ("Itv"), Intervals-Cong ("Itv-Cong"), Octagons ("Oct"), Constant propagation ("Cp")
+4. ***knobs***: Here, we have 3 different knobs for all three repairs: splitting, unrolling, context-sensitivity
+5. ***config.is_incremental***: Flag to use either an incremental fixpoint engine or a non-incremental one
+6. ***config.is_sequential***: Flag to prove for one property at a time sequentially or to prove all properties at the same time. 
+
+
+The provided JSON outlines the default configuration, employing the IDDFS algorithm with a maximum bound of ```k=1000```, using the Intervals domain, setting all repair-related knobs to 1000, and enabling both incremental fixpoint calculations and sequential verification. 
+
+
+### Machine Specifications
+- The artifact has been thoroughly tested on an Ubuntu machine.
+- **16 cores** are recommended to run all experiments in parallel.
+- Individual experiments may utilize up to **7 cores**.
+- For machines with **fewer than 4 cores**, running each Python script sequentially is advised for reproducing results.
 
 
 ### Explicit Note:
@@ -28,36 +75,39 @@ We apply for three badges: Available, Validated, and Extensible
 The tool is available on Zenodo: [https://zenodo.org/records/11506965].
 
 ## Validated Badge
+The evaluation for the Validated Badge consists of running the experiments corresponding to the following research questions and verifying the cactus plots given in the paper.
 
-The evaluation for the Validated Badge consists of running the experiments corresponding to the following research questions and verifying the cactus plots given in the paper. 
+For all the research questions below, we have an experiment in the corresponding directory in `exps/`.
 
-For all the research questions below, we have an experiment in the corresponding directory in "exps/".
-
-Each experiment has three scripts
-	1. run.sh : 1 hour (3600 seconds) timeout for all programs. This however up to 40 days. Partitioning the benchmark into multple clones can help reduce the number of days
-	2. run_10s.sh : 10 second timeout for all programs to verify a part of the cactus under the timelimit.
-	3. run_60s.sh : 60 second timeout for all programs to verify a part of the cactus under the timelimit.
-
-The artifact has been tested on a ubuntu machine, and we need 16 cores to run all experiments in parallel. Otherwise, each experiment can be individually run which will need up to 7 cores. If fewer than 4 cores are available, then all python scripts of various timeouts can be executed sequentially. 
-
-The timeout with 3600 seconds take a lot of time to verify (up to 40 days). Hence, we also provide the timeouts 10 seconds and 60 seconds to partially verify the cactus plots, and they take at most a day. Timeout value can be modified in a straightforward manner. 
+### Timeout configurations for full/partial validations
+- Configurations for **10 seconds** and **60 seconds** timeouts are provided for partial validation of the cactus plots. The standard 1-hour timeout can take up to 40 days to complete.
+- Shorter timeouts are designed to complete within a day
 
 
-For each experiment, once one of the './run.sh', './run_10s.sh', './run_60s.sh' scripts successfully completes, then run ```python cactus.py``` to generate cactus plot for that experiment from the same directory. The png image of the cactus plot is dumped within the directory. 
+### Execution instructions
+- Once any of the experiment scripts (`./run.sh`, `./run_10s.sh`, `./run_60s.sh`) successfully completes, execute `python cactus.py` to generate the cactus plot for that particular experiment from the same directory.
+- The PNG image of the cactus plot will be saved within the directory. To review the plots, copy the images from the docker container to your local machine.
 
 
 ### Research Questions:
+
+For experiments related to specific research questions, we utilize strategy-specific parameters as required, while maintaining the default configurations for all other parameters. This approach allows for targeted experimentation and validation of research questions within our framework.
+
+
+
 #### Research question: RQ1
 
 ##### RQ1.a: Comparision with baselines
 
 	This experiment is located in the "exps/precision/" directory. We provide 4 strategies, of which 3 are baselines which are No-Split, Fs (full-split), and SDS (Synchronized-delay search). The final strategy is IDDDS (Iterative deepening depth-first delay search), and the goal is to compare this strategy with the 3 baselines. 
 
+	For all strategies, only the ```algo``` parameter in the config.json is changed compared to the default configuration. 
 
 ##### RQ1.b: Domains
 
 	This experiment is located in the "exps/domains/" directory. Here, we instantiate with 4 strategies corresponding to a numerical domain. We provide 4 such domains: Constant propagation ("Cp"), Intervals ("Intervals"), Intervals + Congruence ("Interval-Cong"), Octagons ("Octagons"). 
 
+	For all strategies, only the ```domain``` parameter in the config.json is changed compared to the default configuration. 
 
 ##### RQ1.c: Sensitivity
 	This experiment is located in the "exps/combinations/" directory. Here, we have 4 strategies:
@@ -65,21 +115,33 @@ For each experiment, once one of the './run.sh', './run_10s.sh', './run_60s.sh' 
 		2. Splitting: Only splits
 		3. Unrolling: Only unrollings
 		4. Context-Sensitivity: Only context-sensitivity
+	
+	For all strategies, only the ```knobs``` parameter in the config.json is changed compared to the default configuration. 
+
 
 #### Research question: RQ2
 
 ##### RQ2.a: Impact of bound 'k'
 	This experiment is located in the "exps/boundk" directory. Here, we have 7 strategies corresponding to 7 different bounds: k=10, 20, 50, 100, 1k, 10k, 100k
 
+	For all strategies, only the ```k``` and ```knobs``` parameters in the config.json are changed compared to the default configuration. 
+
+
 ##### RQ2.b: Impact of Incremental Solving
 	This experiment is located in the "exps/incremental/" directory. Here, we have two strategies: 
 	1. Incremental: IDDDS with incremental computation
 	2. Non-Incremental: IDDDS without incremental computation.  
 
+	For these two strategies, only the ```config.is_incremental``` parameter in the config.json is changed compared to the default configuration. 
+
+
 ##### RQ2.c: Impact of proving one property at a time
 	This experiment is located in the "exps/sequential/" directory. Here, we have two strategies:	
 		1. Sequential: Verifying one property at a time
 		2. Non-Sequential: Verifying all properties at a time
+
+	For these two strategies, only the ```config.is_sequential``` parameter in the config.json is changed compared to the default configuration. 
+
 
 ##### RQ2.d: Impact of the minimization phase
 	In the paper, we do not give any plot for this experiment.
